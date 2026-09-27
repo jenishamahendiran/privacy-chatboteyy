@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivacyFirst AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">🔐 PrivacyFirst AI</div>
+    <p class="privacy-note">
+      Your messages pass through a privacy layer before being sent to the AI service.
+    </p>
+    <button id="newChat">＋ New chat</button>
+    <div class="side-info">
+      <strong>Privacy mode</strong>
+      <span>PII masking: ON</span>
+      <span>Memory: OFF by default</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1>Privacy-first chatbot</h1>
+        <p>AI assistance with user-controlled data handling.</p>
+      </div>
+      <span class="status">● Privacy layer active</span>
+    </header>
+
+    <section id="chat" class="chat">
+      <div class="message assistant">
+        <div class="bubble">
+          <strong>PrivacyFirst AI</strong>
+          <p>Hi bro 👋 Ask me anything. Personal data such as emails and phone numbers are masked before the AI request.</p>
+        </div>
+      </div>
+    </section>
+
+    <form id="chatForm" class="composer">
+      <textarea id="message" rows="1" placeholder="Message PrivacyFirst AI..." required></textarea>
+      <button type="submit">➤</button>
+    </form>
+    <div class="hint">Enter to send · Shift+Enter for a new line</div>
+  </main>
+
+<script>
+const form = document.getElementById("chatForm");
+const input = document.getElementById("message");
+const chat = document.getElementById("chat");
+const newChat = document.getElementById("newChat");
+
+function addMessage(role, text, privacy=false) {
+  const wrap = document.createElement("div");
+  wrap.className = "message " + role;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = "<strong>" + (role === "user" ? "You" : "PrivacyFirst AI") + "</strong>";
+  const p = document.createElement("p");
+  p.textContent = text;
+  bubble.appendChild(p);
+
+  if (privacy) {
+    const tag = document.createElement("small");
+    tag.className = "privacy-tag";
+    tag.textContent = "🔐 Personal data was masked before AI processing";
+    bubble.appendChild(tag);
+  }
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage("user", text);
+  input.value = "";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message: text})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    addMessage("assistant", data.answer, data.privacy?.pii_masking_applied);
+  } catch (err) {
+    addMessage("assistant", "Error: " + err.message);
+  }
+});
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    form.requestSubmit();
+  }
+});
+
+newChat.addEventListener("click", () => {
+  chat.innerHTML = "";
+  addMessage("assistant", "New private conversation started. Memory is off by default.");
+});
+</script>
+</body>
+</html>
